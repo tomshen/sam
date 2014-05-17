@@ -1,0 +1,27 @@
+html {
+  font-size: 20px;
+}
+
+#restart-button {
+  font-size: 1rem;
+}
+
+#transcript {
+  font-size: 3rem;
+  color: grey;
+  margin-top: 1rem;
+}
+
+.track-art {
+  float: left;
+  margin-right: 1rem;
+}
+
+.track-header {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.track-description {
+  font-size: 1rem;
+}

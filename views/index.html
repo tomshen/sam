@@ -6,45 +6,88 @@
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-  <header><h1>Sam</h1></header>
   <article>
-    <h2>Interim</h2>
-    <div id="transcript-interim"></div>
-    <h2>Final</h2>
-    <div id="transcript-final"></div>
+    <header id="transcript"><i>“Play Tear You Down”</i></header>
     <h2>Player</h2>
     <div id="player"></div>
   </article>
+  <footer>
+    <hr>
+    <a href="http://soundcloud.com/"><img src="img/soundcloud.png"></a>
+    <button id="restart-button">Restart speech recognizer</button>
+  </footer>
   <script src="//connect.soundcloud.com/sdk.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
   <script src="js/main.js"></script>
   <script>
     var player = new MusicPlayer('{{soundcloudClientId}}',
                                  '{{soundcloudRedirectUri}}');
 
-    var finalTranscript = '';
-    function onresult(event) {
-      var interimTranscript = '';
-      for (var i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-          document.getElementById('transcript-final').innerHTML = finalTranscript;
-          parseAction(finalTranscript, 'play', function (query) {
-            player.search(query, function (tracks) {
-              player.embed(tracks.filter(function (track) {
-                return track.embeddable_by == 'all';
-              })[0], document.getElementById('player'));
+    var playerActions = {
+      search: {
+        callback: function (query) {
+          player.search(query, function (tracks) {
+            // TODO: render a table of tracks
+          });
+        },
+        minLength: 1,
+        interim: false
+      },
+      play: {
+        callback: function (query) {
+          var recognizer = this;
+          player.search(query, function (tracks) {
+            var track = tracks.filter(function (track) {
+              return track.streamable;
+            })[0];
+            player.stream(track, function (sound) {
+              var $player = document.getElementById('player');
+              recognizer.actions.pause = {
+                callback: function () { sound.pause(); },
+                minLength: 0,
+                interim: true,
+                similar: ['paws', 'pos']
+              };
+              recognizer.actions.resume = {
+                callback: function () { sound.resume(); },
+                minLength: 0,
+                interim: true
+              };
+              recognizer.actions.stop = {
+                callback: function () { sound.stop(); $player.innerHTML = ''; },
+                minLength: 0,
+                interim: true
+              };
+              $player.innerHTML = player.renderTrack(track);
+              sound.play();
             });
           });
-
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-          document.getElementById('transcript-interim').innerHTML = interimTranscript;
-        }
+        },
+        minLength: 1,
+        interim: false
+      },
+      embed: {
+        callback: function (query) {
+          player.search(query, function (tracks) {
+            player.embed(tracks.filter(function (track) {
+              return track.embeddable_by == 'all';
+            })[0], document.getElementById('player'));
+          });
+          // TODO: add actions for pause, resume
+        },
+        minLength: 1,
+        interim: false
       }
-    }
+    };
 
-    var recognition = initSpeechRecognition(onresult);
+    var recognizer = new SpeechRecognizer(playerActions, function (transcript) {
+      document.getElementById('transcript').innerHTML = transcript;
+    });
+    recognizer.start();
 
+    document.getElementById('restart-button').addEventListener('click', function () {
+      recognizer.restart();
+    });
   </script>
 </body>
 </html>
