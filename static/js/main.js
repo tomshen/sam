@@ -1,3 +1,29 @@
+var MusicPlayer = (function() {
+  function MusicPlayer(clientId, redirectUri) {
+    SC.initialize({
+      client_id: clientId,
+      redirect_uri: redirectUri
+    });
+  }
+
+  // callback(tracks), where tracks is an array of track objects
+  MusicPlayer.prototype.search = function (query, callback) {
+    SC.get('/tracks', { q: query, filter: 'streamable' }, callback);
+  };
+
+  MusicPlayer.prototype.stream = function (track) {
+    SC.stream('/tracks/' + track.id, function (sound) {
+      sound.play();
+    });
+  };
+
+  MusicPlayer.prototype.embed = function (track, embedDomNode) {
+    SC.oEmbed(track.uri, { auto_play: true }, embedDomNode);
+  };
+
+  return MusicPlayer;
+})();
+
 function initSpeechRecognition(onresult) {
   var recognition = new webkitSpeechRecognition();
   recognition.continuous = true;
@@ -14,18 +40,10 @@ function initSpeechRecognition(onresult) {
   return recognition;
 }
 
-var finalTranscript = '';
-function onresult(event) {
-  var interimTranscript = '';
-  for (var i = event.resultIndex; i < event.results.length; i++) {
-    if (event.results[i].isFinal) {
-      finalTranscript += event.results[i][0].transcript;
-      document.getElementById('transcript-final').innerHTML = finalTranscript;
-    } else {
-      interimTranscript += event.results[i][0].transcript;
-      document.getElementById('transcript-interim').innerHTML = interimTranscript;
-    }
+function parseAction(text, action, callback) {
+  var tokens = text.split(' ');
+  var searchTokenIndex = tokens.indexOf(action);
+  if (searchTokenIndex !== -1 && tokens.length > searchTokenIndex) {
+    callback(tokens.slice(searchTokenIndex+1).join(' '));
   }
 }
-
-var recognition = initSpeechRecognition(onresult);

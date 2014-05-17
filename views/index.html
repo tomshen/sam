@@ -8,11 +8,43 @@
 <body>
   <header><h1>Sam</h1></header>
   <article>
-    <h2>Intermin</h2>
+    <h2>Interim</h2>
     <div id="transcript-interim"></div>
     <h2>Final</h2>
     <div id="transcript-final"></div>
+    <h2>Player</h2>
+    <div id="player"></div>
   </article>
+  <script src="//connect.soundcloud.com/sdk.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    var player = new MusicPlayer('{{soundcloudClientId}}',
+                                 '{{soundcloudRedirectUri}}');
+
+    var finalTranscript = '';
+    function onresult(event) {
+      var interimTranscript = '';
+      for (var i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+          document.getElementById('transcript-final').innerHTML = finalTranscript;
+          parseAction(finalTranscript, 'play', function (query) {
+            player.search(query, function (tracks) {
+              player.embed(tracks.filter(function (track) {
+                return track.embeddable_by == 'all';
+              })[0], document.getElementById('player'));
+            });
+          });
+
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+          document.getElementById('transcript-interim').innerHTML = interimTranscript;
+        }
+      }
+    }
+
+    var recognition = initSpeechRecognition(onresult);
+
+  </script>
 </body>
 </html>
